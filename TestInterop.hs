@@ -21,6 +21,9 @@ main = do
 
   case List.break ("--" ==) args of
     (a_exec:a_args, sep:b_exec:b_args) -> do
+      putStrLn $ show (a_exec:a_args)
+      putStrLn $ show (b_exec:b_args)
+
       -- Launch the two processes.
       let a = (proc a_exec a_args){
             std_in = CreatePipe,
@@ -38,19 +41,14 @@ main = do
          (Just b_stdin, Just b_stdout, _, b_handle)) -> do
 
           -- Read the first SPAKE2 message from each.
-          _ <- putStrLn "Gonna get line a"
           a_start <- hGetLine a_stdout
-          _ <- putStrLn $ "Got " ++ a_start ++ ". Gonna get line b"
           b_start <- hGetLine b_stdout
-          _ <- putStrLn $ "Got " ++ b_start ++ ". Got lines"
 
           -- Send them along to each other.
-          putStrLn "Gonna put line a"
-          hPutStrLn a_stdin b_start
-          hFlush a_stdin
-          hPutStrLn b_stdin b_start
-          hFlush b_stdin
-          putStrLn "Put the lines"
+          _ <- hPutStrLn a_stdin b_start
+          _ <- hFlush a_stdin
+          _ <- hPutStrLn b_stdin a_start
+          _ <- hFlush b_stdin
 
           -- Read the SPAKE2 session key computed by each.
           a_key <- hGetLine a_stdout
