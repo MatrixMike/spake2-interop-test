@@ -31,6 +31,17 @@ startProcessWithPipes exec args = do
     (Just stdin, Just stdout, _, handle) -> pure (stdin, stdout, handle)
     err -> unexpectedError "Bug in createProcess, didn't return handles"
 
+withProcess exec args action =
+  bracket
+    (startProcessWithPipes exec args)
+    closeFDs
+    action
+  where
+    closeFDs (inH, outH, processH) = do
+      hClose inH
+      hClose outH
+      waitForProcess processH
+
 parseArgs :: [String] -> Maybe ((String, [String]), (String, [String]))
 parseArgs args =
   let (before, after) = List.break ("--" ==) args in
@@ -46,13 +57,11 @@ main = do
                                             Just x -> pure x
 
   -- Launch the two processes.
-  (a_key, b_key) <- bracket
-    (startProcessWithPipes a_exec a_args)
-    closeFDs
+  (a_key, b_key) <- withProcess
+    a_exec a_args
     (\(a_stdin, a_stdout, a_handle) ->
-       bracket
-         (startProcessWithPipes b_exec b_args)
-         closeFDs
+       withProcess
+         b_exec b_args
          (\(b_stdin, b_stdout, b_handle) -> do
              -- Read the first SPAKE2 message from each.
              a_start <- hGetLine a_stdout
@@ -81,9 +90,3 @@ main = do
     False -> do
       putStrLn "Session keys mis-match."
       Exit.exitWith (Exit.ExitFailure 1)
-
-  where
-    closeFDs (inH, outH, processH) = do
-      hClose inH
-      hClose outH
-      waitForProcess processH
