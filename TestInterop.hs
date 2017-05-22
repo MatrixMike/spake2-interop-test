@@ -2,7 +2,7 @@ module Main (main) where
 
 import qualified Data.List as List (break, head, take, drop)
 
-import qualified System.IO as IO (hGetLine, hPutStr, hPutStrLn, hClose)
+import System.IO (hGetLine, hPutStr, hPutStrLn, hFlush, hClose)
 
 import System.Process (
     StdStream(CreatePipe)
@@ -39,27 +39,28 @@ main = do
 
           -- Read the first SPAKE2 message from each.
           _ <- putStrLn "Gonna get line a"
-          a_start <- IO.hGetLine a_stdout
+          a_start <- hGetLine a_stdout
           _ <- putStrLn $ "Got " ++ a_start ++ ". Gonna get line b"
-          b_start <- IO.hGetLine b_stdout
+          b_start <- hGetLine b_stdout
           _ <- putStrLn $ "Got " ++ b_start ++ ". Got lines"
 
           -- Send them along to each other.
-          _ <- putStrLn "Gonna put line a"
-          _ <- IO.hPutStr a_stdin (b_start ++ "\n")
-          _ <- putStrLn "Gonna put line b"
-          _ <- IO.hPutStrLn b_stdin (a_start ++ "\n")
-          _ <- putStrLn "Put the lines"
+          putStrLn "Gonna put line a"
+          hPutStrLn a_stdin b_start
+          hFlush a_stdin
+          hPutStrLn b_stdin b_start
+          hFlush b_stdin
+          putStrLn "Put the lines"
 
           -- Read the SPAKE2 session key computed by each.
-          a_key <- IO.hGetLine a_stdout
-          b_key <- IO.hGetLine b_stdout
+          a_key <- hGetLine a_stdout
+          b_key <- hGetLine b_stdout
 
           -- Clean up.
-          _ <- IO.hClose a_stdin
-          _ <- IO.hClose b_stdin
-          _ <- IO.hClose a_stdout
-          _ <- IO.hClose b_stdout
+          _ <- hClose a_stdin
+          _ <- hClose b_stdin
+          _ <- hClose a_stdout
+          _ <- hClose b_stdout
           a_result <- waitForProcess a_handle
           b_result <- waitForProcess b_handle
 
