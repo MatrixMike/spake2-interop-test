@@ -21,8 +21,8 @@ main = do
 
   case List.break ("--" ==) args of
     (a_exec:a_args, sep:b_exec:b_args) -> do
-      putStrLn $ show (a_exec:a_args)
-      putStrLn $ show (b_exec:b_args)
+      print (a_exec:a_args)
+      print (b_exec:b_args)
 
       -- Launch the two processes.
       let a = (proc a_exec a_args){
@@ -74,10 +74,10 @@ main = do
               putStrLn "Session keys mis-match."
               Exit.exitWith (Exit.ExitFailure 1)
 
-        otherwise -> do
+        _ -> do
           putStrLn "Some error."
           Exit.exitWith (Exit.ExitFailure 1)
 
-    otherwise -> do
+    _ -> do
       putStrLn "Usage: interop <argv for a> -- <argv for b>"
       Exit.exitWith (Exit.ExitFailure 1)
