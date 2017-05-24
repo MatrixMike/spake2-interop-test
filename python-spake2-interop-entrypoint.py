@@ -27,7 +27,7 @@ PARAMS = {
 param = params.ParamsEd25519
 if len(argv) > 3:
     try:
-        params = PARAMS[argv[3]]
+        param = PARAMS[argv[3]]
     except ValueError:
         raise ValueError(
             'Choose a valid group to use (one of %r), got %s'
