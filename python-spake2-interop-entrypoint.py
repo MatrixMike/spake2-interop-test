@@ -43,6 +43,7 @@ try:
     msg_in = line.decode("hex")
 except TypeError as e:
     stderr.write("ERROR: Could not decode line (%s): %r\n" % (e, line))
+    stderr.flush()
     raise e
 key = s.finish(msg_in)
 print(key.encode("hex"))
