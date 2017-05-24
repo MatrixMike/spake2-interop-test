@@ -2,7 +2,7 @@
 
 from __future__ import print_function, unicode_literals
 
-from sys import argv, stdout
+from sys import argv, stdout, stderr
 
 from spake2 import params
 
@@ -38,7 +38,12 @@ s = SPAKE2_SIDE(password, params=param)
 msg_out = s.start()
 print(msg_out.encode("hex"))
 stdout.flush()
-msg_in = raw_input().decode("hex")
+line = raw_input()
+try:
+    msg_in = line.decode("hex")
+except TypeError as e:
+    stderr.write("ERROR: Could not decode line (%s): %r\n" % (e, line))
+    raise e
 key = s.finish(msg_in)
 print(key.encode("hex"))
 stdout.flush()
