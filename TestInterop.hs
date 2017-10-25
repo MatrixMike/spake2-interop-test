@@ -1,59 +1,47 @@
-module Main (main) where
+{-# OPTIONS_GHC -fwarn-missing-signatures #-}
+module Main
+  ( main
+  ) where
 
-import qualified Data.List as List (break, head, take, drop)
+import qualified Data.List as List (break, drop, head, take)
 
-import System.IO (hGetLine, hPutStr, hPutStrLn, hFlush, hClose)
+import System.IO (hClose, hFlush, hGetLine, hPutStr, hPutStrLn)
 
-import System.Process (
-    StdStream(CreatePipe)
-  , CreateProcess(CreateProcess, std_in, std_out)
-  , proc
-  , createProcess
-  , waitForProcess
-  )
+import System.Process
+       (CreateProcess(CreateProcess, std_in, std_out),
+        StdStream(CreatePipe), createProcess, proc, waitForProcess)
 
 import qualified System.Environment as Environment (getArgs)
-import qualified System.Exit as Exit (ExitCode(ExitSuccess, ExitFailure), exitWith)
+import qualified System.Exit as Exit
+       (ExitCode(ExitFailure, ExitSuccess), exitWith)
 
 main :: IO ()
 main = do
   args <- Environment.getArgs
-
   case List.break ("--" ==) args of
     (a_exec:a_args, sep:b_exec:b_args) -> do
-      putStrLn $ show (a_exec:a_args)
-      putStrLn $ show (b_exec:b_args)
-
+--    print (a_exec : a_args)
+      putStrLn $ show (a_exec : a_args)
+      putStrLn $ show (b_exec : b_args)
       -- Launch the two processes.
-      let a = (proc a_exec a_args){
-            std_in = CreatePipe,
-            std_out = CreatePipe
-            }
-      let b = (proc b_exec b_args){
-            std_in = CreatePipe,
-            std_out = CreatePipe
-            }
+      let a = (proc a_exec a_args) {std_in = CreatePipe, std_out = CreatePipe}
+      let b = (proc b_exec b_args) {std_in = CreatePipe, std_out = CreatePipe}
       aProcess <- createProcess a
       bProcess <- createProcess b
-
       case (aProcess, bProcess) of
-        ((Just a_stdin, Just a_stdout, _, a_handle),
-         (Just b_stdin, Just b_stdout, _, b_handle)) -> do
-
+        ((Just a_stdin, Just a_stdout, _, a_handle), (Just b_stdin, Just b_stdout, _, b_handle))
           -- Read the first SPAKE2 message from each.
+         -> do
           a_start <- hGetLine a_stdout
           b_start <- hGetLine b_stdout
-
           -- Send them along to each other.
           _ <- hPutStrLn a_stdin b_start
           _ <- hFlush a_stdin
           _ <- hPutStrLn b_stdin a_start
           _ <- hFlush b_stdin
-
           -- Read the SPAKE2 session key computed by each.
           a_key <- hGetLine a_stdout
           b_key <- hGetLine b_stdout
-
           -- Clean up.
           _ <- hClose a_stdin
           _ <- hClose b_stdin
@@ -61,7 +49,6 @@ main = do
           _ <- hClose b_stdout
           a_result <- waitForProcess a_handle
           b_result <- waitForProcess b_handle
-
           -- Report the computed SPAKE2 session keys and whether or not they match.
           putStrLn $ "A's key: " ++ a_key
           putStrLn $ "B's key: " ++ b_key
@@ -69,15 +56,12 @@ main = do
             True -> do
               putStrLn "Session keys match."
               Exit.exitWith Exit.ExitSuccess
-
             False -> do
               putStrLn "Session keys mis-match."
               Exit.exitWith (Exit.ExitFailure 1)
-
         otherwise -> do
           putStrLn "Some error."
           Exit.exitWith (Exit.ExitFailure 1)
-
     otherwise -> do
       putStrLn "Usage: interop <argv for a> -- <argv for b>"
       Exit.exitWith (Exit.ExitFailure 1)
